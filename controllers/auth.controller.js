@@ -3,6 +3,7 @@ import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import generateTokenAndSetCookie from "../utils/helperFunctions/generateTokenAndSetCookie.js";
+import { sendVerificationEmail } from "../middlewares/mailtrap/emails.js";
 
 export const signup = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
@@ -15,18 +16,27 @@ export const signup = asyncHandler(async (req, res) => {
 
   if (userExist) throw new ApiError(409, "User Already Exist!!");
 
+  const verificationToken = Math.floor(
+    100000 + Math.random() * 900000
+  ).toString();
+
   const newUser = new User({
     name,
     email,
     password,
+    verificationToken,
+    verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000,
   });
-
-  newUser.verificationToken = await newUser.generateToken();
-  newUser.verificationTokenExpiresAt = Date.now() + 60 * 60 * 1000;
 
   await newUser.save();
 
   generateTokenAndSetCookie(res, newUser._id);
+
+  await sendVerificationEmail({
+    name: newUser.name,
+    email: newUser.email,
+    verificationToken: newUser.verificationToken,
+  });
 
   res.status(201).json(
     new ApiResponse(201, "User Has Been Created Successfully", {
