@@ -1,9 +1,40 @@
-export const signup = async (req, res) => {
-  res.send("sign in");
-};
-export const login = async (req, res) => {
-  res.send("login");
-};
-export const logout = async (req, res) => {
-  res.send("logout");
-};
+import asyncHandler from "../utils/asyncHandler.js";
+import { User } from "../models/user.model.js";
+import ApiError from "../utils/ApiError.js";
+import ApiResponse from "../utils/ApiResponse.js";
+import generateTokenAndSetCookie from "../utils/helperFunctions/generateTokenAndSetCookie.js";
+
+export const signup = asyncHandler(async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if ([name, email, password].some((field) => !field || field.trim() === "")) {
+    throw new ApiError(400, "All Fields Must Be Filled!!");
+  }
+
+  const userExist = await User.findOne({ email });
+
+  if (userExist) throw new ApiError(409, "User Already Exist!!");
+
+  const newUser = new User({
+    name,
+    email,
+    password,
+  });
+
+  newUser.verificationToken = await newUser.generateToken();
+  newUser.verificationTokenExpiresAt = Date.now() + 60 * 60 * 1000;
+
+  await newUser.save();
+
+  generateTokenAndSetCookie(res, newUser._id);
+
+  res.status(201).json(
+    new ApiResponse(201, "User Has Been Created Successfully", {
+      ...newUser._doc,
+      password: undefined,
+    }).toJSON()
+  );
+});
+
+export const login = asyncHandler(async (req, res) => {});
+export const logout = asyncHandler(async (req, res) => {});
