@@ -5,9 +5,9 @@ const generateTokenAndSetCookie = (res, id) => {
     {
       id,
     },
-    process.env.REFRESH_TOKEN,
+    process.env.JWT_SECRET_TOKEN,
     {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRES,
+      expiresIn: process.env.JWT_SECRET_TOKEN_EXPIRES,
     }
   );
 
