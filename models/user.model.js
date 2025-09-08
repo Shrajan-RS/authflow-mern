@@ -4,6 +4,10 @@ import jwt from "jsonwebtoken";
 
 const userSchema = new Schema(
   {
+    name: {
+      type: String,
+      required: [true, "Name Is Required"],
+    },
     email: {
       type: String,
       required: [true, "Email Is Required"],
@@ -13,17 +17,13 @@ const userSchema = new Schema(
       type: String,
       required: [true, "Password Is Required"],
     },
-    name: {
-      type: String,
-      required: [true, "Name Is Required"],
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
     lastLogin: {
       type: Date,
       default: Date.now,
-    },
-    isVerified: {
-      type: Boolean,
-      default: false,
     },
     resetPasswordToken: String,
     resetPasswordExpiresAt: Date,

@@ -1,10 +1,7 @@
-// errorMiddleware.js
 
-// Global error-handling middleware
 const errorMiddleware = (err, req, res, next) => {
-  console.error(err.stack); // Log the error stack for debugging
+  console.error(err.stack); 
 
-  // You can customize status code based on the error type
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal Server Error";
 

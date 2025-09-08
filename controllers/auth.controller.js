@@ -3,7 +3,10 @@ import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import generateTokenAndSetCookie from "../utils/helperFunctions/generateTokenAndSetCookie.js";
-import { sendVerificationEmail } from "../middlewares/mailtrap/emails.js";
+import {
+  sendVerificationEmail,
+  welcomeEmail,
+} from "../middlewares/mailtrap/emails.js";
 
 export const signup = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
@@ -43,6 +46,40 @@ export const signup = asyncHandler(async (req, res) => {
       ...newUser._doc,
       password: undefined,
     }).toJSON()
+  );
+});
+
+export const verifyEmail = asyncHandler(async (req, res) => {
+  const { code } = req.body;
+
+  const user = await User.findOneAndUpdate(
+    {
+      verificationToken: code,
+      verificationTokenExpiresAt: { $gt: Date.now() },
+    },
+    {
+      $set: { isVerified: true },
+      $unset: { verificationToken: "", verificationTokenExpiresAt: "" },
+    },
+    { new: true }
+  );
+
+  if (!user) {
+    return res
+      .status(400)
+      .json(new ApiError(400, "Invalid Or Expired Verification Code"));
+  }
+
+  welcomeEmail({
+    name: user.name,
+    email: user.email,
+  });
+
+  res.status(200).json(
+    new ApiResponse(200, "User Has Been Verified", {
+      ...user._doc,
+      password: undefined,
+    })
   );
 });
 
