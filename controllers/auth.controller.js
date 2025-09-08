@@ -3,10 +3,10 @@ import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import generateTokenAndSetCookie from "../utils/helperFunctions/generateTokenAndSetCookie.js";
-import {
-  sendVerificationEmail,
-  welcomeEmail,
-} from "../middlewares/mailtrap/emails.js";
+// import {
+//   sendVerificationEmail,
+//   welcomeEmail,
+// } from "../middlewares/mailtrap/emails.js";
 
 export const signup = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
@@ -35,11 +35,11 @@ export const signup = asyncHandler(async (req, res) => {
 
   generateTokenAndSetCookie(res, newUser._id);
 
-  await sendVerificationEmail({
-    name: newUser.name,
-    email: newUser.email,
-    verificationToken: newUser.verificationToken,
-  });
+  // await sendVerificationEmail({
+  //   name: newUser.name,
+  //   email: newUser.email,
+  //   verificationToken: newUser.verificationToken,
+  // });
 
   res.status(201).json(
     new ApiResponse(201, "User Has Been Created Successfully", {
@@ -70,10 +70,10 @@ export const verifyEmail = asyncHandler(async (req, res) => {
       .json(new ApiError(400, "Invalid Or Expired Verification Code"));
   }
 
-  welcomeEmail({
-    name: user.name,
-    email: user.email,
-  });
+  // welcomeEmail({
+  //   name: user.name,
+  //   email: user.email,
+  // });
 
   res.status(200).json(
     new ApiResponse(200, "User Has Been Verified", {
@@ -83,5 +83,36 @@ export const verifyEmail = asyncHandler(async (req, res) => {
   );
 });
 
-export const login = asyncHandler(async (req, res) => {});
-export const logout = asyncHandler(async (req, res) => {});
+export const login = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  if ([email, password].some((field) => !field || field.trim() === "")) {
+    throw new ApiError(400, "All Credentials Required");
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new ApiError(400, "Sign Up First");
+  }
+
+  const isPasswordMatch = await user.isPasswordMatch(password);
+
+  if (!isPasswordMatch) {
+    throw new ApiError(401, "Invalid Credentials");
+  }
+
+  generateTokenAndSetCookie(res, user._id);
+
+  await User.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
+
+  res.status(200).json(
+    new ApiResponse(200, "User Logged In Successfully!!!", {
+      user: { ...user._doc, password: undefined },
+    })
+  );
+});
+
+export const logout = asyncHandler(async (req, res) => {
+  res.clearCookie("token");
+  res.status(200).json(new ApiResponse(200, "Deleted Cookies"));
+});
